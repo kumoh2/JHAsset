@@ -1,0 +1,87 @@
+@page "/asset-register"
+@inject IAssetService AssetService
+
+<h3>자산 등록</h3>
+
+<div>
+    <label>자산명: </label>
+    <input @bind="NewAsset.Name" />
+</div>
+
+<div>
+    <label>대분류: </label>
+    <select @bind="NewAsset.Category" @bind:after="OnCategoryChange">
+        <option value="Hardware">하드웨어</option>
+        <option value="Software">소프트웨어</option>
+        <option value="Other">기타</option>
+    </select>
+</div>
+
+<div>
+    <label>세부분류: </label>
+    <select @bind="NewAsset.SubCategory">
+        @if (NewAsset.Category == AssetCategory.Hardware)
+        {
+            <option value="Server">서버</option>
+            <option value="Network">네트워크</option>
+            <option value="PC">PC</option>
+        }
+        else if (NewAsset.Category == AssetCategory.Software)
+        {
+            <option value="OS">운영체제</option>
+            <option value="DB">데이터베이스</option>
+            <option value="APP">애플리케이션</option>
+        }
+        else
+        {
+            <option value="기타">기타</option>
+        }
+    </select>
+</div>
+
+<div>
+    <label>구매일: </label>
+    <input type="date" @bind="NewAsset.PurchaseDate" />
+</div>
+
+<div>
+    <label>구매가격: </label>
+    <input type="number" @bind="NewAsset.PurchasePrice" />
+</div>
+
+<div>
+    <label>자산번호: </label>
+    <input @bind="NewAsset.AssetNumber" />
+</div>
+
+<button @onclick="OnSave">저장</button>
+
+@if (!string.IsNullOrEmpty(StatusMessage))
+{
+    <p>@StatusMessage</p>
+}
+
+@code {
+    private Asset NewAsset = new()
+    {
+        Category = AssetCategory.Hardware,
+        PurchaseDate = DateTime.Now
+    };
+    private string StatusMessage = "";
+
+    private async Task OnSave()
+    {
+        await AssetService.AddAsync(NewAsset);
+        StatusMessage = $"[{NewAsset.Name}] 등록 완료!";
+        NewAsset = new()
+        {
+            Category = AssetCategory.Hardware,
+            PurchaseDate = DateTime.Now
+        };
+    }
+
+    private void OnCategoryChange()
+    {
+        // 필요 시 세부 분류 초기화 등
+    }
+}

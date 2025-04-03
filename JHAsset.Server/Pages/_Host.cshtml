@@ -1,0 +1,20 @@
+@page "/"
+@namespace JHAsset.Server.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>JHAsset Server - Fluent UI</title>
+    <base href="~/" />
+    <!-- CSS 등 필요 시 추가 가능 -->
+</head>
+<body>
+    <app>
+        <!-- ★ 공통 App (JHAsset.Shared.App) -->
+        <component type="typeof(JHAsset.Shared.App)" render-mode="ServerPrerendered" />
+    </app>
+    <script src="_framework/blazor.server.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+@page "/register"
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+
+<h3>회원가입</h3>
+
+@if (!string.IsNullOrEmpty(Message))
+{
+    <p style="color:red">@Message</p>
+}
+
+<div>
+    <label>아이디:</label>
+    <input @bind="Username" />
+</div>
+<div>
+    <label>비밀번호:</label>
+    <input type="password" @bind="Password" />
+</div>
+
+<button @onclick="OnRegister">회원가입</button>
+
+@code {
+    private string Username = "";
+    private string Password = "";
+    private string Message = "";
+
+    private async Task OnRegister()
+    {
+        bool success = await AuthService.RegisterAsync(Username, Password);
+        if (success)
+        {
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            Message = "이미 존재하는 아이디입니다.";
+        }
+    }
+}
