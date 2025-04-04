@@ -33,7 +33,17 @@ public static class MauiProgram
         });
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IAssetService, AssetService>();
+	// ★ 여기서부터 DB 생성 보장 로직 추가
+    var app = builder.Build();
 
-        return builder.Build();
+    using (var scope = app.Services.CreateScope())
+    {
+        // DbContextFactory에서 컨텍스트를 생성
+        var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<JHAssetContext>>();
+        using var dbContext = dbContextFactory.CreateDbContext();
+        dbContext.Database.EnsureCreated();
+    }
+
+    return app;
     }
 }
