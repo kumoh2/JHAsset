@@ -5,3 +5,5 @@
 /JHAsset.Server/bin
 /JHAsset.Maui/bin
 .fake
+/.vscode
+/JHAsset.Maui/Properties
