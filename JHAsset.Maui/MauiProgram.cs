@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using JHAsset.Shared.Data;
 using JHAsset.Shared.Services;
 using System.IO;
+using Microsoft.FluentUI.AspNetCore.Components; // AddFluentUIComponents() 확장 메서드
+using Microsoft.FluentUI.AspNetCore.Components.DataGrid.EntityFrameworkAdapter; // AddDataGridEntityFrameworkAdapter() 확장 메서드
 
 namespace JHAsset.Maui;
 
