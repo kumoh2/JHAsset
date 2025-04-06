@@ -2,10 +2,17 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <script src="_framework/blazor.webview.js"></script>
     <title>JHAsset MAUI Blazor</title>
 </head>
 <body>
     <div id="app">Loading...</div>
+
+       <!-- [중요] Fluent UI 하이브리드 이슈 워크어라운드 스크립트 -->
+    <script app-name="JHAsset.Maui"
+       src="_content/Microsoft.FluentUI.AspNetCore.Components/js/initializersLoader.webview.js">
+    </script>
+
+    <!-- MAUI Blazor WebView 스크립트 -->
+    <script src="_framework/blazor.webview.js"></script>
 </body>
 </html>

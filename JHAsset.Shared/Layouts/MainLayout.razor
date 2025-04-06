@@ -2,20 +2,21 @@
 
 <!-- Fluent UI Container (Simple Example) -->
 <div style="background-color: #f3f2f1; padding: 10px;">
-    <h2 style="margin:0;">JHAsset - Fluent UI Layout</h2>
-
-    <div style="margin-top:8px;">
-        <!-- 간단한 링크들 -->
-        <a href="/login">Login</a> | <a href="/register">Register</a> | <a href="/asset-register">Asset</a> | <a href="/excel-export">ExcelExport</a>
-    </div>
+    <FluentMainLayout NavMenuTitle="Navigation menu">
+        <Header><h3>Fluent UI Components</h3></Header>
+        <SubHeader><p>A subheader here</p></SubHeader>
+        <Body>
+            Lorum ipsum...
+        </Body>
+        <NavMenuContent>
+            <FluentNavLink Href="/" Text="Home">Home</FluentNavLink>
+        </NavMenuContent>
+    </FluentMainLayout>
 </div>
 
-<hr />
-
-<article style="margin: 10px;">
-    @Body
-</article>
-
-<footer style="border-top: 1px solid #ccc; margin:10px; padding-top:10px;">
-    <p style="color:#888;">&copy; 2025 JHAsset</p>
-</footer>
+<!-- ★ Fluent UI Provider들 추가 -->
+<FluentToastProvider />
+<FluentDialogProvider />
+<FluentTooltipProvider />
+<FluentMessageBarProvider />
+<FluentMenuProvider />

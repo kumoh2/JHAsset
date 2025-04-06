@@ -33,17 +33,28 @@ public static class MauiProgram
         });
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IAssetService, AssetService>();
-	// ★ 여기서부터 DB 생성 보장 로직 추가
-    var app = builder.Build();
 
-    using (var scope = app.Services.CreateScope())
-    {
-        // DbContextFactory에서 컨텍스트를 생성
-        var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<JHAssetContext>>();
-        using var dbContext = dbContextFactory.CreateDbContext();
-        dbContext.Database.EnsureCreated();
-    }
+        // ★ Fluent UI 서비스 등록
+        builder.Services.AddFluentUIComponents(options =>
+        {
+            // Tailwind 등의 특수 클래스명 쓸 때는
+            // options.ValidateClassNames = false;
+        });
 
-    return app;
+        // FluentDataGrid + EFCore를 Async
+        builder.Services.AddDataGridEntityFrameworkAdapter();
+        
+        // ★ 여기서부터 DB 생성 보장 로직 추가
+        var app = builder.Build();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            // DbContextFactory에서 컨텍스트를 생성
+            var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<JHAssetContext>>();
+            using var dbContext = dbContextFactory.CreateDbContext();
+            dbContext.Database.EnsureCreated();
+        }
+
+        return app;
     }
 }
