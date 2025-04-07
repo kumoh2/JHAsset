@@ -1,22 +1,25 @@
 @inherits LayoutComponentBase
 
 <!-- Fluent UI Container (Simple Example) -->
-<div style="background-color: #f3f2f1; padding: 10px;">
+<FluentDesignTheme>
     <FluentMainLayout NavMenuTitle="Navigation menu">
         <Header><h3>Fluent UI Components</h3></Header>
         <SubHeader><p>A subheader here</p></SubHeader>
         <Body>
-            Lorum ipsum...
+            @Body
         </Body>
         <NavMenuContent>
             <FluentNavLink Href="/" Text="Home">Home</FluentNavLink>
+            <FluentNavLink Href="login" Text="Login">Login</FluentNavLink>
+            <FluentNavLink Href="register" Text="Register">Register</FluentNavLink>
+            <FluentNavLink Href="asset-register" Text="Asset">Asset</FluentNavLink>
+            <FluentNavLink Href="excel-export" Text="ExcelExport">ExcelExport</FluentNavLink>
         </NavMenuContent>
     </FluentMainLayout>
-</div>
-
-<!-- ★ Fluent UI Provider들 추가 -->
-<FluentToastProvider />
-<FluentDialogProvider />
-<FluentTooltipProvider />
-<FluentMessageBarProvider />
-<FluentMenuProvider />
+    <!-- Provider들 -->
+    <FluentToastProvider />
+    <FluentDialogProvider />
+    <FluentTooltipProvider />
+    <FluentMessageBarProvider />
+    <FluentMenuProvider />
+</FluentDesignTheme>
