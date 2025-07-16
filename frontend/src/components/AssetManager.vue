@@ -5,7 +5,7 @@ import { api } from "@/services/api";
 interface Asset {
   id: number;
   name: string;
-  ipAddress: string;
+  ip_address: string;
   port: number;
   protocol: string;
   description: string | null;
@@ -20,7 +20,7 @@ const reset = () => (form.value = { name: "", ip: "", port: 80, protocol: "tcp",
 async function add() {
   await api.post("/assets", {
     name: form.value.name,
-    ipAddress: form.value.ip,
+    ip_address: form.value.ip,
     port: form.value.port,
     protocol: form.value.protocol,
     description: form.value.description || null,
@@ -43,7 +43,7 @@ onMounted(load);
     <thead><tr><th>ID</th><th>이름</th><th>IP</th><th>Port</th><th></th></tr></thead>
     <tbody>
       <tr v-for="a in assets" :key="a.id">
-        <td>{{ a.id }}</td><td>{{ a.name }}</td><td>{{ a.ipAddress }}</td>
+        <td>{{ a.id }}</td><td>{{ a.name }}</td><td>{{ a.ip_address }}</td>
         <td>{{ a.port }}</td>
         <td><button @click="remove(a.id)">삭제</button></td>
       </tr>
