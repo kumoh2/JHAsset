@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "esnext",           // 컴파일 대상
+    "module": "Node16",           // 모듈 방식
+    "moduleResolution": "node16",   // 모듈 해석 방식
+    "strict": true,               // 엄격 모드
+    "jsx": "preserve",            // Vue 파일 내 JSX 지원
+    "sourceMap": true,
+    "baseUrl": ".",               // 절대경로의 기준
+    "paths": {
+      "@/*": ["src/*"]            // @ → src 매핑
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

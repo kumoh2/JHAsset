@@ -3,3 +3,4 @@
 /frontend/node_modules
 /backend/bin
 /backend/obj
+frontend/.DS_Store
