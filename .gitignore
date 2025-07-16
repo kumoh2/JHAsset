@@ -1,11 +1,5 @@
-/JHAsset.Shared/obj
-/JHAsset.Server/obj
-/JHAsset.Maui/obj
-/JHAsset.Shared/bin
-/JHAsset.Server/bin
-/JHAsset.Maui/bin
 .fake
 /.vscode
-/JHAsset.Maui/Properties
 /frontend/node_modules
+/backend/bin
 /backend/obj
