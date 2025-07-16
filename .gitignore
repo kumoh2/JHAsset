@@ -7,3 +7,5 @@
 .fake
 /.vscode
 /JHAsset.Maui/Properties
+/frontend/node_modules
+/backend/obj
