@@ -28,6 +28,22 @@ public class AssetRepository
         });
     }
 
+    public Task<int> UpdateAsync(AssetUpdate dto)
+    {
+        const string sql = @"
+          UPDATE asset
+             SET name        = @Name,
+                 ip_address  = @Ip_Address,
+                 port        = @Port,
+                 protocol    = @Protocol,
+                 description = @Description,
+                 ssh_user    = COALESCE(@Ssh_User, @Name),
+                 is_active   = @Is_Active,
+                 updated_at  = now()
+           WHERE id = @Id;";
+        return _db.ExecuteAsync(sql, dto);
+    }
+    
     public Task<int> DeleteAsync(long id) =>
         _db.ExecuteAsync("DELETE FROM asset WHERE id = @id", new { id });
 }
@@ -37,4 +53,17 @@ public record AssetCreate(
     string Ip_Address,
     int    Port,
     string Protocol = "tcp",
-    string? Description = null);
+    string? Description = null,
+    string? Ssh_User = null
+);
+
+public record AssetUpdate(
+    long   Id,
+    string Name,
+    string Ip_Address,
+    int    Port,
+    string Protocol,
+    string? Description,
+    string? Ssh_User,
+    bool   Is_Active
+);

@@ -22,6 +22,14 @@ public class AssetsController : ControllerBase
         return Created($"/api/assets/{id}", new { id });
     }
 
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> Put(long id, [FromBody] AssetUpdate dto)
+    {
+        if (id != dto.Id) return BadRequest("ID mismatch");
+        var rows = await _repo.UpdateAsync(dto);
+        return rows > 0 ? NoContent() : NotFound();
+    }
+
     [HttpDelete("{id:long}")]                          // DELETE /api/assets/3
     public async Task<IActionResult> Delete(long id)
         => await _repo.DeleteAsync(id) > 0 ? NoContent() : NotFound();

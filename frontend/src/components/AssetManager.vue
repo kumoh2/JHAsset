@@ -24,13 +24,23 @@ const form = reactive({
   description: '',
 });
 
+const editingId = ref<number | null>(null);
+const edit = reactive({
+  name: '',
+  ssh_user: '',
+  ip_address: '',
+  port: 22,
+  protocol: 'tcp',
+  description: '',
+});
+
 const search = ref('');
 const sortKey = ref<'name' | 'ip_address' | 'port'>('name');
 const sortAsc = ref(true);
 
 const toast = ref('');
 
-// ── computed
+// ============ computed ============
 const filteredAssets = computed(() => {
   const q = search.value.trim().toLowerCase();
   let list = assets.value;
@@ -48,17 +58,19 @@ const filteredAssets = computed(() => {
   });
 });
 
+// ============ watch ============
 watch(toast, v => {
   if (!v) return;
   const t = setTimeout(() => (toast.value = ''), 2000);
   return () => clearTimeout(t);
 });
 
-// ── api
+// ============ api ============
 const load = async () => {
   assets.value = (await api.get('/assets')).data;
 };
-const reset = () =>
+
+const resetForm = () =>
   Object.assign(form, {
     name: '',
     ssh_user: '',
@@ -79,23 +91,54 @@ async function add() {
   });
   lastInsertedId.value = res.data.id;
   await load();
-  reset();
+  resetForm();
   fireToast('등록 완료!');
 }
 
 async function remove(id: number) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
   await api.delete(`/assets/${id}`);
   await load();
   fireToast('삭제 완료!');
 }
 
-// ── ssh
+function startEdit(a: Asset) {
+  editingId.value = a.id;
+  Object.assign(edit, {
+    name: a.name,
+    ssh_user: a.ssh_user || '',
+    ip_address: a.ip_address,
+    port: a.port,
+    protocol: a.protocol,
+    description: a.description || '',
+  });
+}
+
+function cancelEdit() {
+  editingId.value = null;
+}
+
+async function saveEdit(id: number) {
+  await api.put(`/assets/${id}`, {
+    name: edit.name,
+    ipAddress: edit.ip_address,
+    port: edit.port,
+    protocol: edit.protocol,
+    description: edit.description || null,
+    sshUser: edit.ssh_user || edit.name,
+  });
+  editingId.value = null;
+  await load();
+  fireToast('수정 완료!');
+}
+
+// ============ ssh ============
 function sshCmd(a: Asset) {
   const user = a.ssh_user || a.name;
   return `ssh ${user}@${a.ip_address} -p ${a.port}`;
 }
 
-// ── copy directive
+// ============ copy directive ============
 const vCopy = {
   async mounted(el: HTMLElement, binding: any) {
     el.addEventListener('click', async () => {
@@ -128,12 +171,7 @@ onMounted(load);
   <!-- Toast -->
   <Teleport to="body">
     <transition name="fade">
-      <div
-        v-if="toast"
-        class="toast"
-      >
-        {{ toast }}
-      </div>
+      <div v-if="toast" class="toast">{{ toast }}</div>
     </transition>
   </Teleport>
 
@@ -142,6 +180,7 @@ onMounted(load);
     <h2>자산 목록</h2>
     <div class="tools">
       <input v-model.trim="search" placeholder="검색 (이름/IP/포트)" />
+      <button class="btn primary" @click="add" :disabled="!form.name || !form.ip">검색</button>
     </div>
   </div>
 
@@ -160,6 +199,7 @@ onMounted(load);
             Port <span v-if="sortKey==='port'">{{ sortAsc ? '▲' : '▼' }}</span>
           </th>
           <th class="action-col">SSH</th>
+          <th class="action-col">수정</th>
           <th class="action-col">삭제</th>
         </tr>
       </thead>
@@ -170,19 +210,45 @@ onMounted(load);
           :key="a.id"
           :class="[{ highlight: lastInsertedId === a.id }]"
         >
-          <td>{{ a.name }}</td>
-          <td class="mono">{{ a.ip_address }}</td>
-          <td>{{ a.port }}</td>
-          <td>
-            <button v-copy="sshCmd(a)" class="btn small ghost">
-              📋 복사
-            </button>
-          </td>
-          <td>
-            <button class="btn small danger" @click="remove(a.id)">
-              삭제
-            </button>
-          </td>
+          <!-- 보기 모드 -->
+          <template v-if="editingId !== a.id">
+            <td>{{ a.name }}</td>
+            <td class="mono">{{ a.ip_address }}</td>
+            <td>{{ a.port }}</td>
+            <td>
+              <button v-copy="sshCmd(a)" class="btn small ghost">📋 복사</button>
+            </td>
+            <td>
+              <button class="btn small" @click="startEdit(a)">수정</button>
+            </td>
+            <td>
+              <button class="btn small danger" @click="remove(a.id)">삭제</button>
+            </td>
+          </template>
+
+          <!-- 수정 모드 -->
+          <template v-else>
+            <td>
+              <input v-model.trim="edit.name" class="inline-input" />
+              <div class="sub">
+                <input v-model.trim="edit.ssh_user" class="inline-input" placeholder="SSH user" />
+              </div>
+            </td>
+            <td><input v-model.trim="edit.ip_address" class="inline-input mono" /></td>
+            <td><input v-model.number="edit.port" type="number" min="1" max="65535" class="inline-input w-16" /></td>
+            <td>
+              <select v-model="edit.protocol" class="inline-input w-20">
+                <option>tcp</option>
+                <option>udp</option>
+              </select>
+            </td>
+            <td colspan="2">
+              <div class="flex gap-2">
+                <button class="btn small primary" @click="saveEdit(a.id)">저장</button>
+                <button class="btn small" @click="cancelEdit">취소</button>
+              </div>
+            </td>
+          </template>
         </tr>
       </transition-group>
     </table>
@@ -205,7 +271,6 @@ onMounted(load);
 </template>
 
 <style scoped>
-/* 기본 색 */
 :root {
   --border: #ddd;
   --text: #333;
@@ -215,7 +280,7 @@ onMounted(load);
   --danger-light: #fde2e2;
 }
 
-/* Toast */
+/* toast */
 .toast {
   position: fixed;
   bottom: 24px;
@@ -229,7 +294,7 @@ onMounted(load);
   z-index: 9999;
 }
 
-/* top bar */
+/* topbar */
 .topbar{
   display:flex;
   justify-content: space-between;
@@ -315,6 +380,19 @@ h3{
   min-width:120px;
 }
 
+/* inline edit */
+.inline-input{
+  border:1px solid var(--border);
+  padding:4px 6px;
+  border-radius:4px;
+  font-size:12px;
+}
+.sub{
+  margin-top:4px;
+  font-size:11px;
+  opacity:.7;
+}
+
 /* buttons */
 .btn{
   border:1px solid var(--border);
@@ -333,7 +411,7 @@ h3{
   font-size:12px;
 }
 .btn.primary{
-  background:var(--accent);
+  background:#0059ff;
   border-color:var(--accent);
   color:#fff;
 }
@@ -363,7 +441,6 @@ h3{
 .fade-leave-to{
   opacity:0;
 }
-
 .list-enter-active,
 .list-leave-active{
   transition: all .15s;
