@@ -2,7 +2,6 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { api } from '@/services/api';
 
-// ───────────── 모델 ─────────────
 interface Asset {
   id: number;
   name: string;
@@ -13,17 +12,16 @@ interface Asset {
   ssh_user?: string;
 }
 
-// ───────────── 상태 ─────────────
 const assets = ref<Asset[]>([]);
 const lastInsertedId = ref<number | null>(null);
 
 const form = reactive({
   name: '',
+  ssh_user: '',
   ip: '',
   port: 22,
   protocol: 'tcp',
   description: '',
-  ssh_user: '', // 필요 시 폼에 추가
 });
 
 const search = ref('');
@@ -32,56 +30,43 @@ const sortAsc = ref(true);
 
 const toast = ref('');
 
-// ───────────── 공통 기능 ─────────────
+// ── computed
 const filteredAssets = computed(() => {
   const q = search.value.trim().toLowerCase();
   let list = assets.value;
   if (q) {
-    list = list.filter(
-      a =>
-        a.name.toLowerCase().includes(q) ||
-        a.ip_address.toLowerCase().includes(q) ||
-        String(a.port).includes(q)
+    list = list.filter(a =>
+      [a.name, a.ip_address, String(a.port)].some(v => v?.toLowerCase().includes(q))
     );
   }
   return [...list].sort((a, b) => {
-    const ak = a[sortKey.value];
-    const bk = b[sortKey.value];
+    const ak = (a as any)[sortKey.value];
+    const bk = (b as any)[sortKey.value];
     if (ak < bk) return sortAsc.value ? -1 : 1;
     if (ak > bk) return sortAsc.value ? 1 : -1;
     return 0;
   });
 });
 
-// 포트가 비어 있으면 프로토콜 tcp일 때 22 자동
-watch(
-  () => form.protocol,
-  proto => {
-    if (proto === 'tcp' && !form.port) form.port = 22;
-  }
-);
-
-// 토스트 자동 숨김
 watch(toast, v => {
   if (!v) return;
-  const t = setTimeout(() => (toast.value = ''), 2500);
+  const t = setTimeout(() => (toast.value = ''), 2000);
   return () => clearTimeout(t);
 });
 
-// ───────────── API ─────────────
+// ── api
 const load = async () => {
   assets.value = (await api.get('/assets')).data;
 };
-const reset = () => {
+const reset = () =>
   Object.assign(form, {
     name: '',
+    ssh_user: '',
     ip: '',
     port: 22,
     protocol: 'tcp',
     description: '',
-    ssh_user: '',
   });
-};
 
 async function add() {
   const res = await api.post('/assets', {
@@ -95,157 +80,297 @@ async function add() {
   lastInsertedId.value = res.data.id;
   await load();
   reset();
-  showToast('등록 완료!');
+  fireToast('등록 완료!');
 }
 
 async function remove(id: number) {
   await api.delete(`/assets/${id}`);
   await load();
-  showToast('삭제 완료!');
+  fireToast('삭제 완료!');
 }
 
-// ───────────── SSH ─────────────
-function sshCmd(asset: Asset) {
-  const user = asset.ssh_user || asset.name;
-  return `ssh ${user}@${asset.ip_address} -p ${asset.port}`;
+// ── ssh
+function sshCmd(a: Asset) {
+  const user = a.ssh_user || a.name;
+  return `ssh ${user}@${a.ip_address} -p ${a.port}`;
 }
 
-// ───────────── Clipboard (커스텀 디렉티브) ─────────────
+// ── copy directive
 const vCopy = {
   async mounted(el: HTMLElement, binding: any) {
-    el.onclick = async () => {
+    el.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(binding.value);
-        showToast('복사 완료!');
+        fireToast('복사 완료!');
       } catch {
-        showToast('클립보드 권한 오류');
+        fireToast('클립보드 권한 오류');
       }
-    };
+    });
   },
 };
 
-// ───────────── 유틸 ─────────────
-function showToast(msg: string) {
+function fireToast(msg: string) {
   toast.value = msg;
+}
+
+function toggleSort(key: 'name' | 'ip_address' | 'port') {
+  if (sortKey.value === key) sortAsc.value = !sortAsc.value;
+  else {
+    sortKey.value = key;
+    sortAsc.value = true;
+  }
 }
 
 onMounted(load);
 </script>
 
 <template>
-  <!-- Toast: Teleport + Transition -->
+  <!-- Toast -->
   <Teleport to="body">
-    <Transition name="fade">
-      <div v-if="toast" class="fixed bottom-4 right-4 bg-black/80 text-white px-3 py-2 rounded shadow">
+    <transition name="fade">
+      <div
+        v-if="toast"
+        class="toast"
+      >
         {{ toast }}
       </div>
-    </Transition>
+    </transition>
   </Teleport>
 
-  <!-- 검색 / 정렬 -->
-  <div class="flex gap-2 mb-3 items-center text-sm">
-    <input v-model.trim="search" placeholder="검색 (이름/IP/포트)" class="border px-2 py-1 flex-1" />
-    <select v-model="sortKey" class="border px-2 py-1">
-      <option value="name">이름</option>
-      <option value="ip_address">IP</option>
-      <option value="port">Port</option>
-    </select>
-    <button class="border px-2 py-1" @click="sortAsc = !sortAsc">
-      {{ sortAsc ? '▲' : '▼' }}
-    </button>
+  <!-- Top bar -->
+  <div class="topbar">
+    <h2>자산 목록</h2>
+    <div class="tools">
+      <input v-model.trim="search" placeholder="검색 (이름/IP/포트)" />
+    </div>
   </div>
 
-  <h2 class="text-xl font-semibold mb-2">자산 목록</h2>
-  <table class="border mb-4 w-full text-sm">
-    <thead class="bg-gray-100">
-      <tr>
-        <th>ID</th>
-        <th>이름</th>
-        <th>IP</th>
-        <th>Port</th>
-        <th colspan="3">Action</th>
-      </tr>
-    </thead>
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th @click="toggleSort('name')" :class="{ sort: sortKey==='name' }">
+            이름 <span v-if="sortKey==='name'">{{ sortAsc ? '▲' : '▼' }}</span>
+          </th>
+          <th @click="toggleSort('ip_address')" :class="{ sort: sortKey==='ip_address' }">
+            IP <span v-if="sortKey==='ip_address'">{{ sortAsc ? '▲' : '▼' }}</span>
+          </th>
+          <th @click="toggleSort('port')" :class="{ sort: sortKey==='port' }">
+            Port <span v-if="sortKey==='port'">{{ sortAsc ? '▲' : '▼' }}</span>
+          </th>
+          <th class="action-col">SSH</th>
+          <th class="action-col">삭제</th>
+        </tr>
+      </thead>
 
-    <TransitionGroup tag="tbody" name="list">
-      <tr
-        v-for="a in filteredAssets"
-        :key="a.id"
-        :class="[
-          'odd:bg-gray-50',
-          lastInsertedId === a.id ? 'bg-green-50 animate-pulse' : ''
-        ]"
-      >
-        <td class="px-2">{{ a.id }}</td>
-        <td class="px-2">{{ a.name }}</td>
-        <td class="px-2">{{ a.ip_address }}</td>
-        <td class="px-2">{{ a.port }}</td>
+      <transition-group tag="tbody" name="list">
+        <tr
+          v-for="a in filteredAssets"
+          :key="a.id"
+          :class="[{ highlight: lastInsertedId === a.id }]"
+        >
+          <td>{{ a.name }}</td>
+          <td class="mono">{{ a.ip_address }}</td>
+          <td>{{ a.port }}</td>
+          <td>
+            <button v-copy="sshCmd(a)" class="btn small ghost">
+              📋 복사
+            </button>
+          </td>
+          <td>
+            <button class="btn small danger" @click="remove(a.id)">
+              삭제
+            </button>
+          </td>
+        </tr>
+      </transition-group>
+    </table>
+  </div>
 
-        <td>
-          <button v-copy="sshCmd(a)" class="text-blue-600 underline">SSH 복사</button>
-        </td>
-        <td>
-          <button class="text-gray-600 underline" @click="showToast(sshCmd(a))">명령 보기</button>
-        </td>
-        <td>
-          <button class="text-red-600 underline" @click="remove(a.id)">삭제</button>
-        </td>
-      </tr>
-    </TransitionGroup>
-  </table>
-
-  <h2 class="text-xl font-semibold mb-2">신규 등록</h2>
-  <form @submit.prevent="add" class="flex flex-wrap gap-2 items-end text-sm">
-    <input v-model.trim="form.name" placeholder="이름(계정)" class="border px-2 py-1" required />
-    <input v-model.trim="form.ssh_user" placeholder="SSH 사용자 (미입력 시 이름 사용)" class="border px-2 py-1" />
-    <input v-model.trim="form.ip" placeholder="IP" class="border px-2 py-1" required />
-
-    <input
-      v-model.number="form.port"
-      type="number"
-      min="1"
-      max="65535"
-      class="border w-20 px-2 py-1"
-      title="SSH 포트"
-    />
-
-    <select v-model="form.protocol" class="border px-2 py-1">
+  <!-- Form -->
+  <h3 class="mt-24">신규 등록</h3>
+  <form @submit.prevent="add" class="form">
+    <input v-model.trim="form.name" placeholder="이름(계정)" required />
+    <input v-model.trim="form.ssh_user" placeholder="SSH 사용자 (미입력 시 이름)" />
+    <input v-model.trim="form.ip" placeholder="IP" required />
+    <input v-model.number="form.port" type="number" min="1" max="65535" placeholder="Port" />
+    <select v-model="form.protocol">
       <option>tcp</option>
       <option>udp</option>
     </select>
-
-    <input v-model.trim="form.description" placeholder="비고" class="border flex-1 px-2 py-1" />
-
-    <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">
-      추가
-    </button>
+    <input v-model.trim="form.description" placeholder="비고" class="flex-1" />
+    <button type="submit" class="btn primary">추가</button>
   </form>
 </template>
 
 <style scoped>
-table th,
-table td {
-  border: 1px solid #ddd;
-  padding: 4px 6px;
+/* 기본 색 */
+:root {
+  --border: #ddd;
+  --text: #333;
+  --accent: #2563eb;
+  --accent-light: #e0ecff;
+  --danger: #dc2626;
+  --danger-light: #fde2e2;
 }
 
-/* Transition */
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(0,0,0,.8);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  z-index: 9999;
+}
+
+/* top bar */
+.topbar{
+  display:flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom:16px;
+}
+.topbar h2{
+  margin:0;
+  font-size:20px;
+  font-weight:600;
+}
+.topbar .tools{
+  display:flex;
+  gap:8px;
+}
+.topbar input{
+  border:1px solid var(--border);
+  padding:6px 10px;
+  border-radius:4px;
+  font-size:13px;
+  width:220px;
+}
+
+/* table */
+.table-wrap{
+  border:1px solid var(--border);
+  border-radius:6px;
+  overflow:auto;
+  max-height: 360px;
+}
+table{
+  border-collapse:collapse;
+  width:100%;
+  font-size:13px;
+}
+thead{
+  position: sticky;
+  top: 0;
+  background:#f8f9fa;
+  z-index:1;
+}
+th,td{
+  padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+}
+th.sort{
+  color:var(--accent);
+}
+tbody tr:hover{
+  background:#fafafa;
+}
+.mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.highlight{
+  animation: flash 1.6s ease-out;
+}
+@keyframes flash{
+  0%{ background: #eaffea;}
+  100%{ background: transparent;}
+}
+.action-col{
+  width:90px;
+}
+
+/* form */
+h3{
+  font-size:18px;
+  margin:24px 0 12px;
+}
+.form{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  font-size:13px;
+}
+.form input,
+.form select{
+  border:1px solid var(--border);
+  padding:6px 10px;
+  border-radius:4px;
+  min-width:120px;
+}
+
+/* buttons */
+.btn{
+  border:1px solid var(--border);
+  padding:6px 14px;
+  border-radius:4px;
+  font-size:13px;
+  cursor:pointer;
+  background:#fff;
+  transition: background .12s;
+}
+.btn:hover{
+  background:#fafafa;
+}
+.btn.small{
+  padding:4px 8px;
+  font-size:12px;
+}
+.btn.primary{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.btn.primary:hover{
+  background:#1e4fc7;
+}
+.btn.ghost{
+  background:var(--accent-light);
+  border-color: var(--accent-light);
+  color:var(--accent);
+}
+.btn.danger{
+  background:var(--danger-light);
+  border-color: var(--danger-light);
+  color:var(--danger);
+}
+.btn.danger:hover{
+  background:#fcd6d6;
+}
+
+/* transition */
 .fade-enter-active,
-.fade-leave-active {
-  transition: opacity .2s;
+.fade-leave-active{
+  transition: opacity .15s;
 }
 .fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.fade-leave-to{
+  opacity:0;
 }
 
 .list-enter-active,
-.list-leave-active {
-  transition: all .2s;
+.list-leave-active{
+  transition: all .15s;
 }
 .list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
+.list-leave-to{
+  opacity:0;
+  transform: translateY(-3px);
 }
 </style>
